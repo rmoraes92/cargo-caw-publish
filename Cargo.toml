@@ -1,6 +1,6 @@
 [package]
 name = "cargo-is-version-published"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Ramon Moraes"]
 description = "a cargo command to check if a Cargo.toml version was published without panic."
