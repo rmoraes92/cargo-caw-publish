@@ -15,9 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Extra Cargo
+      run: cargo install cargo-is-version-published
     - name: Run tests
       run: cargo test --verbose
     - name: Build
       run: cargo build --verbose
     - name: Publish
-      run: cargo publish
+      run: if [[ "$(cargo is-version-published ./Cargo.toml)" = "no" ]]; then cargo publish; fi
