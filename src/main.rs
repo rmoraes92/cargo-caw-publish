@@ -46,13 +46,13 @@ fn get_crates_name(crate_toml: &Table) -> Option<String> {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
+    if args.len() != 3 {
         eprintln!("missing Cargo.toml path! Usage:");
         eprintln!("\tcargo is-version-published Cargo.toml");
         eprintln!("\tcargo is-version-published workspace_proj_1/Cargo.toml");
         process::exit(1);
     }
-    let crate_toml_path = Path::new(&args[1]);
+    let crate_toml_path = Path::new(&args[2]);
     let crate_toml = match load_crate_toml(&crate_toml_path) {
         Ok(m) => m,
         Err(e) => {
