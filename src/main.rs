@@ -16,10 +16,11 @@ use reqwest::{
 use anyhow::Result;
 
 use serde::Deserialize;
+use sha256::try_digest;
 
 #[derive(Debug, Deserialize, Clone)]
 struct Version {
-    // checksum: String,
+    checksum: String,
     num: String,
 }
 
@@ -28,6 +29,10 @@ struct CratesResponse {
     // _crate: Crate,
     // meta: Meta,
     versions: Vec<Version>,
+}
+
+fn get_sha256_from_crate_file(crate_file_path: &Path) -> String {
+    try_digest(crate_file_path).unwrap()
 }
 
 fn load_crate_toml(toml_path: &Path) -> Result<Table> {
@@ -74,6 +79,15 @@ fn main() {
             process::exit(1);
         },
     };
+    // offline package info
+    // ./target/package/cargo-is-version-published-0.1.1/.cargo_vcs_info.json
+    let crate_file_path_str = format!("./target/package/{}-{}.crate", crate_name, crate_toml_ver);
+    let crate_file_path = Path::new(&crate_file_path_str);
+    if crate_file_path.is_file() {
+        eprintln!(".crate file does not exists. please run cargo package");
+        process::exit(1);
+    }
+    let crate_checksum = get_sha256_from_crate_file(crate_file_path);
     let host = "https://crates.io";
     let endpoint = "/api/v1/crates";
     let url = format!("{}{}/{}", host, endpoint, crate_name);
@@ -99,8 +113,13 @@ fn main() {
                 Ok(api_resp) => {
                     for version in api_resp.versions {
                         if version.num == crate_toml_ver {
-                            print!("yes");
-                            return;
+                            if version.checksum == crate_checksum {
+                                print!("yes");
+                                return;
+                            } else {
+                                eprintln!("the version {} is published but the local checksum does not match. You may have forgot to bump version at Cargo.toml", version.num);
+                                process::exit(1)
+                            }
                         }
                     }
                     print!("no");
