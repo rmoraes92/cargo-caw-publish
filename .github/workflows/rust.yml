@@ -22,4 +22,6 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Publish
-      run: if [[ "$(cargo is-version-published ./Cargo.toml)" = "no" ]]; then cargo publish; fi
+      run: \
+        cargo package
+        if [[ "$(cargo is-version-published ./Cargo.toml)" = "no" ]]; then cargo publish; fi
