@@ -1,137 +1,175 @@
 //! # cargo-is-version-published
-//! Check if a Cargo.toml version was published without panic.
-//!
+//! A thin wrapper around `cargo publish` that verifies if a crate is
+//! publishable taking on account both version string and checksum.
+//! 
+//! 
+//! ## Usage
+//! 
 //! ```bash
-//! $ cargo is-version-published Cargo.toml  # <yes|no>
+//! $ cargo is-version-published
 //! ```
 //! 
+//! or
+//! 
+//! ```bash
+//! $ cargo is-version-published <package_name>
+//! ```
 
-use std::{env, path::Path, process};
-use cfo::read_file;
-use toml::Table;
-use reqwest::{
-    Method,
-    blocking::Client as RwClient
-};
-use anyhow::Result;
+// TODO find a better name to this crate
+
+use std::{path::{Path, PathBuf}, process};
+
+use clap::Parser;
 
 use serde::Deserialize;
 use sha256::try_digest;
 
+use cargo_is_version_published::Cli;
+use cargo_is_version_published::CargoToml;
+use cargo_is_version_published::exec_cargo_version;
+use cargo_is_version_published::exec_cargo_package;
+use cargo_is_version_published::exec_cargo_publish;
+use cargo_is_version_published::get_crate_data as get_cratesio_data;
+
 #[derive(Debug, Deserialize, Clone)]
-struct Version {
+struct CrateVersion {
     checksum: String,
     num: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 struct CratesResponse {
-    // _crate: Crate,
-    // meta: Meta,
-    versions: Vec<Version>,
+    versions: Vec<CrateVersion>,
 }
 
 fn get_sha256_from_crate_file(crate_file_path: &Path) -> String {
     try_digest(crate_file_path).unwrap()
 }
 
-fn load_crate_toml(toml_path: &Path) -> Result<Table> {
-    let crate_toml_str = read_file(toml_path)?;
-    let crate_toml = crate_toml_str.parse::<Table>()?;
-    return Ok(crate_toml);
-}
-
-fn get_crates_version(crate_toml: &Table) -> Option<String> {
-    Some(crate_toml.get("package")?.as_table()?.get("version")?.as_str()?.to_string())
-}
-
-fn get_crates_name(crate_toml: &Table) -> Option<String> {
-    Some(crate_toml.get("package")?.as_table()?.get("name")?.as_str()?.to_string())
-}
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        eprintln!("missing Cargo.toml path! Usage:");
-        eprintln!("\tcargo is-version-published Cargo.toml");
-        eprintln!("\tcargo is-version-published workspace_proj_1/Cargo.toml");
-        process::exit(1);
-    }
-    let crate_toml_path = Path::new(&args[2]);
-    let crate_toml = match load_crate_toml(&crate_toml_path) {
+    let cli = Cli::parse();
+
+    let crate_cargo_toml_path: PathBuf = match cli.package {
+        Some(s) => Path::new(&format!("{}/Cargo.toml", s)).to_path_buf(),
+        None => Path::new("Cargo.toml").to_path_buf(),
+    };
+
+    // Recovering Data from Cargo.toml
+    // =========================================================================
+    let cargo_toml = match CargoToml::from(&crate_cargo_toml_path) {
         Ok(m) => m,
         Err(e) => {
-            eprint!("err while loading crate's toml: {}", e);
+            eprintln!("err while loading crate's toml: {}", e);
             process::exit(1);
         },
     };
-    let crate_toml_ver = match get_crates_version(&crate_toml) {
-        Some(v) => v,
-        None => {
-            eprintln!("could not recover crate's version from toml.");
+    let crate_ver = cargo_toml.package.version;
+    let crate_name = cargo_toml.package.name;
+
+    // Recalculating Checksum
+    // =========================================================================
+    match exec_cargo_package(Some(&crate_name), cli.package_args) {
+        Ok(s) => if s.len() > 0 {
+            println!("exec cargo package: {}", s)
+        },
+        Err(e) => {
+            eprintln!("exec cargo package: {}", e);
             process::exit(1);
         },
     };
-    let crate_name = match get_crates_name(&crate_toml) {
-        Some(v) => v,
-        None => {
-            eprintln!("could not recover crate's name from toml.");
-            process::exit(1);
-        },
-    };
-    // offline package info
-    // ./target/package/cargo-is-version-published-0.1.1/.cargo_vcs_info.json
-    let crate_file_path_str = format!("./target/package/{}-{}.crate", crate_name, crate_toml_ver);
-    let crate_file_path = Path::new(&crate_file_path_str);
-    if crate_file_path.is_file() {
-        eprintln!(".crate file does not exists. please run cargo package");
+    let crate_file_path = PathBuf::from(format!(
+        "./target/package/{}-{}.crate", crate_name, crate_ver));
+    if !crate_file_path.is_file() {
+        eprintln!("crate file does not exists: {}", crate_file_path.display());
         process::exit(1);
     }
-    let crate_checksum = get_sha256_from_crate_file(crate_file_path);
-    let host = "https://crates.io";
-    let endpoint = "/api/v1/crates";
-    let url = format!("{}{}/{}", host, endpoint, crate_name);
-    let cargo_ver = "cargo 1.82.0 (8f40fc59f 2024-08-21)"; // TODO make this dynamic?
-    let req_builder = RwClient::new()
-        .request(Method::GET, url)
-        .header("Content-Type", "application/json")
-        .header("Accept", "application/json")
-        .header("User-Agent", cargo_ver);
-    let resp = req_builder.send();
+    let crate_checksum = get_sha256_from_crate_file(
+        crate_file_path.as_path());
+
+    // Fetching data from Remote Registry
+    // =========================================================================
+    let cargo_ver = match exec_cargo_version() {
+        Ok(s) => {
+            let trimmed = s.trim().to_string();
+            println!("exec cargo version: {}", trimmed);
+            trimmed
+        },
+        Err(e) => {
+            let fallback_ver = "cargo 1.82.0 (8f40fc59f 2024-08-21)";
+            eprintln!("exec cargo version: {}", e);
+            eprintln!("exec cargo version: falling back to {}", fallback_ver);
+            String::from(fallback_ver)
+        },
+    }; 
+    let resp = get_cratesio_data(&crate_name, &cargo_ver);
+    // TODO make this less nested?
     match resp {
         Ok(r) => {
             if r.status() == 404 {
-                // presuming the crate was not published at all
-                print!("no");
-                return;
+                // Crate does NOT have an entry yet at the registry
+                match exec_cargo_publish(Some(&crate_name), cli.publish_args) {
+                    Ok(s) => if s.len() > 0 {
+                        println!("exec cargo publish: {}", s)
+                    },
+                    Err(e) => {
+                        eprintln!("exec cargo publish: {}", e);
+                        process::exit(1);
+                    },
+                };
+                return
             }
             if r.status() != 200{
-                eprintln!("crates.io api err: {}", r.status());
+                // TODO recover HTTP Response body and add to the error message
+                eprintln!("remote registry err: {} - ", r.status());
                 process::exit(1);
             }
             match r.json::<CratesResponse>() {
                 Ok(api_resp) => {
                     for version in api_resp.versions {
-                        if version.num == crate_toml_ver {
+                        if version.num == crate_ver {
                             if version.checksum == crate_checksum {
-                                print!("yes");
-                                return;
+                                // TODO add a flag to make this scenario return
+                                // 0
+                                eprintln!("the version {} is already published at the remote registry. nothing to do here.", version.num);
+                                return
                             } else {
-                                eprintln!("the version {} is published but the local checksum does not match. You may have forgot to bump version at Cargo.toml", version.num);
-                                process::exit(1)
+                                eprintln!(
+                                    "the version {} is already published at \
+                                    the remote registry but your local .crate \
+                                    checksum differs from the one on the remote:\n\
+                                    local : {}\n\
+                                    remote: {}\n\
+                                    hint: maybe you forgot to update the version \
+                                    at {}!?",
+                                    version.num,
+                                    crate_checksum,
+                                    version.checksum,
+                                    crate_cargo_toml_path.display(),
+                                );
+                                process::exit(1);
                             }
                         }
                     }
-                    print!("no");
+                    match exec_cargo_publish(Some(&crate_name), cli.publish_args) {
+                        Ok(s) => if s.len() > 0 {
+                            println!("exec cargo publish: {}", s)
+                        },
+                        Err(e) => {
+                            eprintln!("exec cargo publish: {}", e);
+                            process::exit(1);
+                        },
+                    };
+                    return
                 },
                 Err(e) => {
-                    eprint!("err parsing resp from crates.io: {}", e);
+                    eprintln!("err parsing resp from remote registry: {}", e);
                     process::exit(1);
                 },
             };
         },
         Err(e) => {
-            eprint!("err on http request to crates.io: {}", e);
+            eprintln!("err while attempting to connect to remote registry: {}", e);
             process::exit(1);
         },
     };
