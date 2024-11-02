@@ -16,13 +16,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Extra Cargo
-      run: cargo install cargo-is-version-published
+      run: cargo install cargo-caw-publish
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --lib --verbose
     - name: Build
       run: cargo build --verbose
     - name: Package
       run: cargo package
     - name: Publish
-      run: if [[ "$(cargo is-version-published ./Cargo.toml)" = "no" ]]; then cargo publish; fi
-
+      run: cargo caw-publish
