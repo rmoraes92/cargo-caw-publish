@@ -1,20 +1,22 @@
 [package]
-name = "cargo-is-version-published"
-version = "0.2.0"
+name = "cargo-caw-publish"
+version = "0.1.0"
 edition = "2021"
 authors = ["Ramon Moraes"]
-description = "a cargo command to check if a Cargo.toml version was published without panic."
+description = "A thin wrapper around `cargo publish` that verifies if a crate is publishable taking on account both version string and checksum."
 license = "MIT"
-documentation = "https://docs.rs/cargo-is-version-published/latest/cargo-is-version-published/"
-homepage = "https://github.com/rmoraes92/cargo-is-version-published"
+documentation = "https://docs.rs/cargo-caw-publish/latest/cargo-caw-publish/"
+homepage = "https://github.com/rmoraes92/cargo-caw-publish"
 
 [[bin]]
-name = "cargo-is-version-published"
+name = "cargo-caw-publish"
 
 [dependencies]
 anyhow = "1.0.91"
 cfo = "0.1.0"
+clap = { version = "4.5.20", features = ["derive"] }
 reqwest = { version = "0.12.9", features = ["blocking", "json"] }
 serde = { version = "1.0.214", features = ["derive"] }
 sha256 = "1.5.0"
+string_from = "0.1.0"
 toml = "0.8.19"

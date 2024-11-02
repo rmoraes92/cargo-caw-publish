@@ -1,21 +1,35 @@
-//! # cargo-is-version-published
+//! # cargo-caw-publish (checksum aware wrapper publish)
 //! A thin wrapper around `cargo publish` that verifies if a crate is
 //! publishable taking on account both version string and checksum.
 //! 
 //! 
 //! ## Usage
 //! 
-//! ```bash
-//! $ cargo is-version-published
-//! ```
-//! 
-//! or
+//! - if you don't a crate/package name it will be assumed you want to process
+//! the Cargo.toml file at the root of the current folder.
 //! 
 //! ```bash
-//! $ cargo is-version-published <package_name>
+//! $ cargo caw-publish
 //! ```
-
-// TODO find a better name to this crate
+//! 
+//! - if passing crate/package name it will be assumed you want to process
+//! a Cargo.toml file at <package_name>/Cargo.toml
+//! 
+//! ```bash
+//! $ cargo caw-publish <package_name>
+//! ```
+//! 
+//! - if you need to pass extra arguments for the "cargo package" phase
+//! 
+//! ```bash
+//! $ cargo caw-publish --package-args="--allow-dirty --keep-going"
+//! ```
+//! 
+//! - if you need to pass extra arguments for the "cargo publish" phase
+//! 
+//! ```bash
+//! $ cargo caw-publish --publish-args="--all-features --keep-going"
+//! ```
 
 use std::{path::{Path, PathBuf}, process};
 
@@ -24,12 +38,12 @@ use clap::Parser;
 use serde::Deserialize;
 use sha256::try_digest;
 
-use cargo_is_version_published::Cli;
-use cargo_is_version_published::CargoToml;
-use cargo_is_version_published::exec_cargo_version;
-use cargo_is_version_published::exec_cargo_package;
-use cargo_is_version_published::exec_cargo_publish;
-use cargo_is_version_published::get_crate_data as get_cratesio_data;
+use cargo_caw_publish::Cli;
+use cargo_caw_publish::CargoToml;
+use cargo_caw_publish::exec_cargo_version;
+use cargo_caw_publish::exec_cargo_package;
+use cargo_caw_publish::exec_cargo_publish;
+use cargo_caw_publish::get_crate_data as get_cratesio_data;
 
 #[derive(Debug, Deserialize, Clone)]
 struct CrateVersion {

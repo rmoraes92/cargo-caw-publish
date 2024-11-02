@@ -1,17 +1,39 @@
-# cargo-is-version-published
-
-a cargo command to check if a Cargo.toml version was published without panic.
+# cargo-caw-publish (checksum aware wrapper publish)
+A thin wrapper around `cargo publish` that verifies if a crate is
+publishable taking on account both version string and checksum.
 
 
 ## Install
 
-`cargo add cargo-is-version-published`
+`cargo install cargo-caw-publish`
 
 
 ## Usage
 
+- if you don't a crate/package name it will be assumed you want to process
+the Cargo.toml file at the root of the current folder.
+
 ```bash
-$ cargo is-version-published Cargo.toml  # <yes|no>
+$ cargo caw-publish
+```
+
+- if passing crate/package name it will be assumed you want to process
+a Cargo.toml file at <package_name>/Cargo.toml
+
+```bash
+$ cargo caw-publish <package_name>
+```
+
+- if you need to pass extra arguments for the "cargo package" phase
+
+```bash
+$ cargo caw-publish --package-args="--allow-dirty --keep-going"
+```
+
+- if you need to pass extra arguments for the "cargo publish" phase
+
+```bash
+$ cargo caw-publish --publish-args="--all-features --keep-going"
 ```
 
 
