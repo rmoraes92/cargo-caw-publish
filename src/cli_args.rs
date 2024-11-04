@@ -1,7 +1,13 @@
 use clap::Parser;
 
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, name = "cargo", bin_name = "cargo")]
+pub enum CargoWrapper{
+    CawPublish(Cli)
+}
+
+#[derive(Parser)]
+#[command(version, about, long_about = None, name = "caw-publish", bin_name = "caw-publish")]
 pub struct Cli {
     /// name of the package/crate to be published
     pub package: Option<String>,
