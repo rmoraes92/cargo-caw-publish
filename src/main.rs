@@ -35,10 +35,11 @@ use std::{path::{Path, PathBuf}, process};
 
 use clap::Parser;
 
+use log::{info, debug, error};
 use serde::Deserialize;
 use sha256::try_digest;
 
-use cargo_caw_publish::Cli;
+use cargo_caw_publish::{init_logger, CargoWrapper};
 use cargo_caw_publish::CargoToml;
 use cargo_caw_publish::exec_cargo_version;
 use cargo_caw_publish::exec_cargo_package;
@@ -62,7 +63,12 @@ fn get_sha256_from_crate_file(crate_file_path: &Path) -> String {
 
 
 fn main() {
-    let cli = Cli::parse();
+    let cli = match CargoWrapper::parse() {
+      CargoWrapper::CawPublish(c) => c,
+    };
+    // let cli = Cli::parse();
+
+    init_logger(cli.verbose);
 
     let crate_cargo_toml_path: PathBuf = match cli.package {
         Some(s) => Path::new(&format!("{}/Cargo.toml", s)).to_path_buf(),
@@ -74,7 +80,7 @@ fn main() {
     let cargo_toml = match CargoToml::from(&crate_cargo_toml_path) {
         Ok(m) => m,
         Err(e) => {
-            eprintln!("err while loading crate's toml: {}", e);
+            error!("err while loading crate's toml: {}", e);
             process::exit(1);
         },
     };
@@ -85,17 +91,17 @@ fn main() {
     // =========================================================================
     match exec_cargo_package(Some(&crate_name), cli.package_args) {
         Ok(s) => if s.len() > 0 {
-            println!("exec cargo package: {}", s)
+            info!("exec cargo package: {}", s)
         },
         Err(e) => {
-            eprintln!("exec cargo package: {}", e);
+            error!("exec cargo package: {}", e);
             process::exit(1);
         },
     };
     let crate_file_path = PathBuf::from(format!(
         "./target/package/{}-{}.crate", crate_name, crate_ver));
     if !crate_file_path.is_file() {
-        eprintln!("crate file does not exists: {}", crate_file_path.display());
+        error!("crate file does not exists: {}", crate_file_path.display());
         process::exit(1);
     }
     let crate_checksum = get_sha256_from_crate_file(
@@ -106,13 +112,13 @@ fn main() {
     let cargo_ver = match exec_cargo_version() {
         Ok(s) => {
             let trimmed = s.trim().to_string();
-            println!("exec cargo version: {}", trimmed);
+            debug!("exec cargo version: {}", trimmed);
             trimmed
         },
         Err(e) => {
             let fallback_ver = "cargo 1.82.0 (8f40fc59f 2024-08-21)";
-            eprintln!("exec cargo version: {}", e);
-            eprintln!("exec cargo version: falling back to {}", fallback_ver);
+            error!("exec cargo version: {}", e);
+            error!("exec cargo version: falling back to {}", fallback_ver);
             String::from(fallback_ver)
         },
     }; 
@@ -124,10 +130,10 @@ fn main() {
                 // Crate does NOT have an entry yet at the registry
                 match exec_cargo_publish(Some(&crate_name), cli.publish_args) {
                     Ok(s) => if s.len() > 0 {
-                        println!("exec cargo publish: {}", s)
+                        info!("exec cargo publish: {}", s)
                     },
                     Err(e) => {
-                        eprintln!("exec cargo publish: {}", e);
+                        error!("exec cargo publish: {}", e);
                         process::exit(1);
                     },
                 };
@@ -135,7 +141,7 @@ fn main() {
             }
             if r.status() != 200{
                 // TODO recover HTTP Response body and add to the error message
-                eprintln!("remote registry err: {} - ", r.status());
+                error!("remote registry err: {} - ", r.status());
                 process::exit(1);
             }
             match r.json::<CratesResponse>() {
@@ -145,10 +151,10 @@ fn main() {
                             if version.checksum == crate_checksum {
                                 // TODO add a flag to make this scenario return
                                 // 0
-                                eprintln!("the version {} is already published at the remote registry. nothing to do here.", version.num);
+                                info!("the version {} is already published at the remote registry. nothing to do here.", version.num);
                                 return
                             } else {
-                                eprintln!(
+                                error!(
                                     "the version {} is already published at \
                                     the remote registry but your local .crate \
                                     checksum differs from the one on the remote:\n\
@@ -167,23 +173,23 @@ fn main() {
                     }
                     match exec_cargo_publish(Some(&crate_name), cli.publish_args) {
                         Ok(s) => if s.len() > 0 {
-                            println!("exec cargo publish: {}", s)
+                            info!("exec cargo publish: {}", s)
                         },
                         Err(e) => {
-                            eprintln!("exec cargo publish: {}", e);
+                            error!("exec cargo publish: {}", e);
                             process::exit(1);
                         },
                     };
                     return
                 },
                 Err(e) => {
-                    eprintln!("err parsing resp from remote registry: {}", e);
+                    error!("err parsing resp from remote registry: {}", e);
                     process::exit(1);
                 },
             };
         },
         Err(e) => {
-            eprintln!("err while attempting to connect to remote registry: {}", e);
+            error!("err while attempting to connect to remote registry: {}", e);
             process::exit(1);
         },
     };
