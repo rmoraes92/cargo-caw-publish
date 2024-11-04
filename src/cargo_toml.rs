@@ -1,3 +1,4 @@
+use log::debug;
 use std::path::Path;
 
 use anyhow::Result;
@@ -18,6 +19,7 @@ pub struct CargoToml {
 
 impl CargoToml {
     pub fn from(file_p: &Path) -> Result<Self> {
+        debug!("reading crate file: {}", file_p.display());
         let crate_toml_str = read_file(file_p)?;
         let ret: Self = toml::from_str::<Self>(&crate_toml_str)?;
         return Ok(ret)
