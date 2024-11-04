@@ -1,3 +1,4 @@
+pub mod logger;
 pub mod cli_args;
 pub mod cargo_toml;
 pub mod exec_cargo_version;
@@ -5,7 +6,10 @@ pub mod exec_cargo_package;
 pub mod exec_cargo_publish;
 pub mod crates_io;
 
+pub use logger::init_logger;
+
 pub use cli_args::Cli;
+pub use cli_args::CargoWrapper;
 pub use exec_cargo_version::exec_cargo_version;
 pub use exec_cargo_package::exec_cargo_package;
 pub use exec_cargo_publish::exec_cargo_publish;
