@@ -2,10 +2,11 @@ use std::process::Command;
 use std::process::Output;
 
 use anyhow::{Result, bail};
+use log::debug;
 
 pub fn exec_cargo_version() -> Result<String> {
     let cmd = "cargo version";
-    println!("exec cargo version: {}", cmd);
+    debug!("exec cargo version: {}", cmd);
     let output: Output = if cfg!(target_os = "windows") {
         Command::new("cmd")
             .args(["/C", ])

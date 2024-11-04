@@ -2,6 +2,7 @@ use std::process::Command;
 use std::process::Output;
 
 use anyhow::{Result, bail};
+use log::debug;
 use string_from::Str;
 
 pub fn exec_cargo_package(package: Option<&str>, args: Option<String>) -> Result<String>{
@@ -13,7 +14,7 @@ pub fn exec_cargo_package(package: Option<&str>, args: Option<String>) -> Result
         Some(a) => format!("{} {}", cargo_cmd, a),
         _ => cargo_cmd,
     };
-    println!("exec cargo package: {}", &cargo_cmd);
+    debug!("exec cargo package: {}", &cargo_cmd);
     let output: Output = if cfg!(target_os = "windows") {
         Command::new("cmd")
             .args(["/C", &cargo_cmd])
