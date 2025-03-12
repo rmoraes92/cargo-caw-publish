@@ -1,7 +1,7 @@
 use std::process::Command;
 use std::process::Output;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use log::debug;
 
 pub fn exec_cargo_version() -> Result<String> {
@@ -9,7 +9,7 @@ pub fn exec_cargo_version() -> Result<String> {
     debug!("exec cargo version: {}", cmd);
     let output: Output = if cfg!(target_os = "windows") {
         Command::new("cmd")
-            .args(["/C", ])
+            .args(["/C"])
             .output()
             .expect("failed to execute process")
     } else {

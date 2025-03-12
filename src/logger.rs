@@ -9,28 +9,16 @@ pub fn init_logger(debug_mode: bool) {
     } else {
         LevelFilter::Info
     };
-    let encoder = Box::new(
-        PatternEncoder::new(
-            //"{d} || {l} || {t} || {m} || {n}"
-            "[{l}] {m}{n}"
-        )
-    );
-    let stdout = ConsoleAppender::builder()
-        .encoder(encoder)
-        .build();
+    let encoder = Box::new(PatternEncoder::new(
+        //"{d} || {l} || {t} || {m} || {n}"
+        "[{l}] {m}{n}",
+    ));
+    let stdout = ConsoleAppender::builder().encoder(encoder).build();
     log4rs::init_config(
         Config::builder()
-        .appender(
-            Appender::builder().build(
-                "stdout",
-                Box::new(stdout),
-            )
-        )
-        .build(
-            Root::builder()
-                .appender("stdout")
-                .build(level_filter)
-        )
-        .unwrap()
-    ).unwrap();
+            .appender(Appender::builder().build("stdout", Box::new(stdout)))
+            .build(Root::builder().appender("stdout").build(level_filter))
+            .unwrap(),
+    )
+    .unwrap();
 }

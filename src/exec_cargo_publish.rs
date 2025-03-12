@@ -1,11 +1,11 @@
 use std::process::Command;
 use std::process::Output;
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use log::debug;
 use string_from::Str;
 
-pub fn exec_cargo_publish(package: Option<&str>, args: Option<String>) -> Result<String>{
+pub fn exec_cargo_publish(package: Option<&str>, args: Option<String>) -> Result<String> {
     let cargo_cmd: String = match package {
         Some(p) => format!("cargo publish -p {}", p),
         None => Str!("cargo publish"),

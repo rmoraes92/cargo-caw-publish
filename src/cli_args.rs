@@ -2,8 +2,8 @@ use clap::Parser;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None, name = "cargo", bin_name = "cargo")]
-pub enum CargoWrapper{
-    CawPublish(Cli)
+pub enum CargoWrapper {
+    CawPublish(Cli),
 }
 
 #[derive(Parser)]

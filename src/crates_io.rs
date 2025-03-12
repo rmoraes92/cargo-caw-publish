@@ -1,7 +1,8 @@
 use anyhow::Result;
 use log::debug;
 use reqwest::{
-    blocking::{Client as RwClient, Response}, Method
+    blocking::{Client as RwClient, Response},
+    Method,
 };
 
 pub fn get_crate_data(crate_name: &str, cargo_ver: &str) -> Result<Response> {
