@@ -1,5 +1,6 @@
 use clap::Parser;
 
+/// Mandatory Parse to properly handle "cargo" command
 #[derive(Parser)]
 #[command(version, about, long_about = None, name = "cargo", bin_name = "cargo")]
 pub enum CargoWrapper {

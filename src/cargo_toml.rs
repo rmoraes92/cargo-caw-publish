@@ -1,3 +1,5 @@
+/// This module only exists to make it easy to retrieve version string at a
+/// Cargo.toml
 use log::debug;
 use std::path::Path;
 

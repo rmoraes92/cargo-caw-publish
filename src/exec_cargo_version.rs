@@ -4,6 +4,8 @@ use std::process::Output;
 use anyhow::{bail, Result};
 use log::debug;
 
+/// executes "cargo version" command line and returns the output:
+/// cargo 1.83.0 (5ffbef321 2024-10-29)
 pub fn exec_cargo_version() -> Result<String> {
     let cmd = "cargo version";
     debug!("exec cargo version: {}", cmd);

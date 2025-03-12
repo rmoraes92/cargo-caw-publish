@@ -5,6 +5,7 @@ use reqwest::{
     Method,
 };
 
+/// http request for `https://crates.io/api/v1/crates/<pkg-name>`
 pub fn get_crate_data(crate_name: &str, cargo_ver: &str) -> Result<Response> {
     let url = format!("https://crates.io/api/v1/crates/{}", crate_name);
     debug!("request {}", url);
