@@ -162,13 +162,10 @@ fn main() {
                                 return;
                             } else {
                                 error!(
-                                    "the version {} is already published at \
-                                    the remote registry but your local .crate \
-                                    checksum differs from the one on the remote:\n\
+                                    "the version {} is already published at the remote registry but your local .crate checksum differs from the one on the remote:\n\
                                     local : {}\n\
                                     remote: {}\n\
-                                    hint: maybe you forgot to update the version \
-                                    at {}!?",
+                                    hint: maybe you forgot to update the version at {}!?",
                                     version.num,
                                     crate_checksum,
                                     version.checksum,
