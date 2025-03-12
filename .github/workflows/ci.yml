@@ -20,6 +20,7 @@ jobs:
     needs: testing
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Extra Cargo
         run: cargo install --path .
       - name: Build
