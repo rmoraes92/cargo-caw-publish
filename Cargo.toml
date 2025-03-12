@@ -1,6 +1,6 @@
 [package]
 name = "cargo-caw-publish"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Ramon Moraes <ramonmoraes.foss@gmail.com>"]
 description = "A thin wrapper around `cargo publish` that verifies if a crate is publishable taking on account both version string and checksum."
